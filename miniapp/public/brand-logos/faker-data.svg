@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Sandbox Test Data">
+  <rect width="128" height="128" rx="32" fill="#164e63"/>
+  <path d="M36 37h56v54H36z" fill="#ecfeff"/>
+  <path d="M44 51h40M44 65h24M44 79h32" stroke="#164e63" stroke-width="7" stroke-linecap="round"/>
+  <path d="M92 29h12v12M36 99H24V87M24 41V29h12M104 87v12H92" stroke="#22d3ee" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

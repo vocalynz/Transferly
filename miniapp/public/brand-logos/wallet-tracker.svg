@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Provider Balance Tracker">
+  <rect width="128" height="128" rx="32" fill="#0f766e"/>
+  <rect x="25" y="39" width="78" height="56" rx="14" fill="#ecfeff"/>
+  <path d="M84 57h23v20H84a10 10 0 0 1 0-20Z" fill="#14b8a6"/>
+  <circle cx="86" cy="67" r="5" fill="#0f766e"/>
+  <path d="M39 76l14-14 11 9 20-24" fill="none" stroke="#0f766e" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

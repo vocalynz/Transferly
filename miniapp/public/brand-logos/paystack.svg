@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Paystack">
+  <rect width="128" height="128" rx="32" fill="#011b33"/>
+  <path d="M29 36h70M29 52h70M29 68h54M29 84h38" stroke="#00c3f7" stroke-width="13" stroke-linecap="round"/>
+  <path d="M91 82h8a10 10 0 0 1 10 10v3a10 10 0 0 1-10 10H88" stroke="#ffffff" stroke-width="7" stroke-linecap="round"/>
+</svg>

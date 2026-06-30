@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Ops Playbooks">
+  <rect width="128" height="128" rx="32" fill="#0f172a"/>
+  <rect x="32" y="24" width="56" height="78" rx="10" fill="#f8fafc"/>
+  <path d="M88 34h10a10 10 0 0 1 10 10v54a10 10 0 0 1-10 10H47" fill="none" stroke="#94a3b8" stroke-width="8" stroke-linecap="round"/>
+  <path d="M44 48h31M44 64h31M44 80h20" stroke="#0f172a" stroke-width="7" stroke-linecap="round"/>
+  <path d="M29 32h14" stroke="#38bdf8" stroke-width="8" stroke-linecap="round"/>
+</svg>

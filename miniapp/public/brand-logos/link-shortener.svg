@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Payment Link Shortener">
+  <rect width="128" height="128" rx="32" fill="#7c2d12"/>
+  <path d="M55 44l-8-8a18 18 0 0 0-25 25l13 13a18 18 0 0 0 25 0l5-5" fill="none" stroke="#fff7ed" stroke-width="11" stroke-linecap="round"/>
+  <path d="M73 84l8 8a18 18 0 0 0 25-25L93 54a18 18 0 0 0-25 0l-5 5" fill="none" stroke="#fed7aa" stroke-width="11" stroke-linecap="round"/>
+  <path d="M48 80l32-32" stroke="#fb923c" stroke-width="8" stroke-linecap="round"/>
+</svg>

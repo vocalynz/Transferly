@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Stripe Connect">
+  <rect width="128" height="128" rx="32" fill="#635bff"/>
+  <path d="M37 43c10-8 35-10 52-2v18c-17-8-35-7-35 0 0 10 41 5 41 35 0 24-31 31-58 18V93c21 12 40 10 40 2 0-11-42-6-42-35 0-7 3-13 2-17Z" fill="#ffffff"/>
+  <path d="M31 35c19-9 43-10 66-2" stroke="#c7d2fe" stroke-width="8" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" role="img" aria-label="Payment QR">
+  <rect width="128" height="128" rx="32" fill="#ea580c"/>
+  <rect x="29" y="29" width="24" height="24" rx="5" fill="#fff7ed"/>
+  <rect x="75" y="29" width="24" height="24" rx="5" fill="#fff7ed"/>
+  <rect x="29" y="75" width="24" height="24" rx="5" fill="#fff7ed"/>
+  <path d="M70 72h12v12H70zM88 72h11v27H88zM64 94h18v8H64zM64 58h9v9h-9zM84 58h15v8H84z" fill="#fff7ed"/>
+  <path d="M36 36h10M82 36h10M36 82h10" stroke="#ea580c" stroke-width="6" stroke-linecap="round"/>
+</svg>

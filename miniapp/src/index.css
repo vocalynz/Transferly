@@ -1,0 +1,484 @@
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@200;300;400;500;600;700;800;900&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  @apply font-sans;
+}
+
+html {
+  scroll-behavior: smooth;
+  --tg-bg-color: #0b1524;
+  --tg-text-color: #f5f8ff;
+  --tg-hint-color: #7f91a8;
+  --tg-link-color: #6ab3f3;
+  --tg-button-color: #2aabee;
+  --tg-button-text-color: #ffffff;
+  --tg-secondary-bg-color: #111f32;
+  --tg-section-bg-color: #15263a;
+  --tg-section-header-text-color: #6ab3f3;
+  --tg-subtitle-text-color: #8ea2b8;
+  --tg-destructive-text-color: #ff6b7a;
+  --tg-header-bg-color: #0b1524;
+  --tg-bottom-bar-bg-color: #0b1524;
+  --tg-accent-text-color: #6ab3f3;
+}
+
+body {
+  @apply bg-slate-950 text-slate-50;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--tg-bg-color);
+}
+
+.transferly-miniapp-skin {
+  --miniapp-shell-bg: color-mix(in srgb, var(--tg-bg-color, #0b1524) 94%, #020817 6%);
+  --miniapp-panel-bg: color-mix(in srgb, var(--tg-secondary-bg-color, #111f32) 84%, #020817 16%);
+  --miniapp-card-bg: color-mix(in srgb, var(--tg-section-bg-color, #15263a) 88%, #020817 12%);
+  --miniapp-header-bg: color-mix(in srgb, var(--tg-header-bg-color, var(--tg-bg-color, #0b1524)) 88%, transparent);
+  --miniapp-bottom-bg: color-mix(in srgb, var(--tg-bottom-bar-bg-color, var(--tg-bg-color, #0b1524)) 92%, transparent);
+  --miniapp-bottom-panel-bg: color-mix(in srgb, var(--tg-secondary-bg-color, #111f32) 90%, #020817 10%);
+  --miniapp-border-color: color-mix(in srgb, var(--tg-text-color, #f5f8ff) 12%, transparent);
+  --miniapp-shell-text: var(--tg-text-color, #f5f8ff);
+  --miniapp-shell-text-muted: var(--tg-subtitle-text-color, #8ea2b8);
+  --miniapp-nav-active-bg: color-mix(in srgb, var(--tg-button-color, #2aabee) 20%, var(--tg-secondary-bg-color, #111f32));
+  --miniapp-nav-active-text: var(--tg-text-color, #f5f8ff);
+  --miniapp-nav-idle-text: color-mix(in srgb, var(--tg-hint-color, #7f91a8) 86%, var(--tg-text-color, #f5f8ff) 14%);
+  --miniapp-nav-hover-bg: color-mix(in srgb, var(--tg-button-color, #2aabee) 10%, transparent);
+  --miniapp-accent-soft: color-mix(in srgb, var(--tg-button-color, #2aabee) 18%, transparent);
+  --miniapp-accent-border: color-mix(in srgb, var(--tg-button-color, #2aabee) 34%, transparent);
+  --miniapp-logo-badge-start: color-mix(in srgb, var(--tg-button-color, #2aabee) 86%, #1d4ed8 14%);
+  --miniapp-logo-badge-end: color-mix(in srgb, var(--tg-link-color, #6ab3f3) 46%, #3730a3 54%);
+  --miniapp-logo-foreground: #ffffff;
+  --miniapp-logo-wordmark: var(--tg-text-color, #f5f8ff);
+  --miniapp-logo-secondary: color-mix(in srgb, var(--tg-subtitle-text-color, #8ea2b8) 88%, var(--tg-text-color, #f5f8ff) 12%);
+  --miniapp-logo-shadow: 0 16px 38px color-mix(in srgb, var(--tg-button-color, #2aabee) 24%, transparent);
+  --miniapp-brand-shadow: 0 16px 38px color-mix(in srgb, var(--tg-button-color, #2aabee) 26%, transparent);
+  --miniapp-nav-active-shadow: 0 12px 30px color-mix(in srgb, var(--tg-button-color, #2aabee) 20%, transparent);
+  color-scheme: dark;
+  background:
+    radial-gradient(circle at 16% -10%, color-mix(in srgb, var(--tg-button-color, #2aabee) 18%, transparent), transparent 28rem),
+    radial-gradient(circle at 92% 8%, color-mix(in srgb, var(--tg-link-color, #6ab3f3) 10%, transparent), transparent 22rem),
+    linear-gradient(180deg, var(--miniapp-shell-bg) 0%, color-mix(in srgb, var(--tg-bg-color, #0b1524) 92%, #020817 8%) 58%, #07111d 100%);
+}
+
+.transferly-miniapp-skin-light {
+  --tg-bg-color: #f5f7fb;
+  --tg-text-color: #111827;
+  --tg-hint-color: #64748b;
+  --tg-link-color: #229ed9;
+  --tg-button-color: #229ed9;
+  --tg-button-text-color: #ffffff;
+  --tg-secondary-bg-color: #eef3f8;
+  --tg-section-bg-color: #ffffff;
+  --tg-section-header-text-color: #229ed9;
+  --tg-subtitle-text-color: #64748b;
+  --tg-destructive-text-color: #dc2626;
+  --tg-header-bg-color: #ffffff;
+  --tg-bottom-bar-bg-color: #ffffff;
+  --tg-accent-text-color: #229ed9;
+  --miniapp-shell-bg: #f5f7fb;
+  --miniapp-panel-bg: color-mix(in srgb, var(--tg-secondary-bg-color) 72%, #ffffff 28%);
+  --miniapp-card-bg: #ffffff;
+  --miniapp-header-bg: rgba(255, 255, 255, 0.9);
+  --miniapp-bottom-bg: rgba(255, 255, 255, 0.94);
+  --miniapp-bottom-panel-bg: color-mix(in srgb, var(--tg-secondary-bg-color) 54%, #ffffff 46%);
+  --miniapp-border-color: rgba(15, 23, 42, 0.1);
+  --miniapp-shell-text: #111827;
+  --miniapp-shell-text-muted: #64748b;
+  --miniapp-nav-active-bg: color-mix(in srgb, var(--tg-button-color) 14%, #ffffff 86%);
+  --miniapp-nav-active-text: #0f172a;
+  --miniapp-nav-idle-text: #64748b;
+  --miniapp-nav-hover-bg: color-mix(in srgb, var(--tg-button-color) 10%, transparent);
+  --miniapp-accent-soft: color-mix(in srgb, var(--tg-button-color) 14%, transparent);
+  --miniapp-accent-border: color-mix(in srgb, var(--tg-button-color) 26%, transparent);
+  --miniapp-logo-badge-start: color-mix(in srgb, var(--tg-button-color) 88%, #1d4ed8 12%);
+  --miniapp-logo-badge-end: color-mix(in srgb, var(--tg-link-color) 54%, #4338ca 46%);
+  --miniapp-logo-foreground: #ffffff;
+  --miniapp-logo-wordmark: var(--tg-text-color);
+  --miniapp-logo-secondary: var(--tg-subtitle-text-color);
+  --miniapp-logo-shadow: 0 16px 38px color-mix(in srgb, var(--tg-button-color) 18%, transparent);
+  --miniapp-brand-shadow: 0 16px 38px color-mix(in srgb, var(--tg-button-color) 18%, transparent);
+  --miniapp-nav-active-shadow: 0 12px 30px rgba(15, 23, 42, 0.1);
+  color-scheme: light;
+  background:
+    radial-gradient(circle at 15% -10%, color-mix(in srgb, var(--tg-button-color) 12%, transparent), transparent 28rem),
+    linear-gradient(180deg, #f8fafc 0%, #f3f6fb 56%, #eef3f8 100%);
+}
+
+.transferly-miniapp-skin ::selection {
+  background: color-mix(in srgb, var(--tg-button-color, #2aabee) 32%, transparent);
+  color: #ffffff;
+}
+
+.transferly-miniapp-skin * {
+  scrollbar-color: color-mix(in srgb, var(--tg-button-color, #2aabee) 58%, transparent) rgba(255, 255, 255, 0.06);
+}
+
+.transferly-miniapp-skin-light ::selection {
+  background: color-mix(in srgb, var(--tg-button-color) 20%, transparent);
+  color: #111827;
+}
+
+.transferly-miniapp-skin-light * {
+  scrollbar-color: color-mix(in srgb, var(--tg-button-color) 44%, transparent) rgba(15, 23, 42, 0.08);
+}
+
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.miniapp-command-hero {
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 14% 0%, rgba(255, 255, 255, 0.2), transparent 18rem),
+    radial-gradient(circle at 84% 12%, rgba(14, 165, 233, 0.28), transparent 18rem),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--tg-button-color) 82%, #0b1524) 0%,
+      color-mix(in srgb, var(--tg-secondary-bg-color) 78%, #020817) 50%,
+      color-mix(in srgb, var(--tg-link-color) 32%, #020817) 100%
+    );
+}
+
+.transferly-miniapp-skin-light .miniapp-command-hero {
+  background:
+    radial-gradient(circle at 14% 0%, rgba(255, 255, 255, 0.48), transparent 18rem),
+    radial-gradient(circle at 84% 12%, rgba(14, 165, 233, 0.22), transparent 18rem),
+    linear-gradient(
+      135deg,
+      color-mix(in srgb, var(--tg-button-color) 86%, #111827) 0%,
+      #1f2937 54%,
+      #0369a1 100%
+    );
+}
+
+.miniapp-command-hero::before {
+  position: absolute;
+  inset: -42%;
+  z-index: -1;
+  pointer-events: none;
+  content: '';
+  background: linear-gradient(115deg, transparent 38%, rgba(255, 255, 255, 0.16) 48%, transparent 58%);
+  transform: translateX(-64%) rotate(8deg);
+}
+
+.miniapp-command-hero::after {
+  position: absolute;
+  inset: 1px;
+  z-index: -1;
+  pointer-events: none;
+  content: '';
+  border-radius: inherit;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+
+.miniapp-pressable {
+  transition:
+    transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    box-shadow 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    background-color 180ms ease,
+    border-color 180ms ease,
+    color 180ms ease,
+    opacity 180ms ease;
+  will-change: transform;
+}
+
+.miniapp-pressable:active {
+  transform: translateY(1px) scale(0.985);
+}
+
+.miniapp-elevated-surface {
+  box-shadow:
+    0 18px 60px rgba(0, 0, 0, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.miniapp-brand-mark {
+  box-shadow: var(--miniapp-brand-shadow);
+}
+
+.miniapp-logo-mark {
+  color: var(--miniapp-logo-foreground);
+  background:
+    linear-gradient(135deg, var(--miniapp-logo-badge-start), var(--miniapp-logo-badge-end));
+  box-shadow: var(--miniapp-logo-shadow);
+}
+
+.miniapp-logo-wordmark {
+  color: var(--miniapp-logo-wordmark);
+}
+
+.miniapp-logo-secondary {
+  color: var(--miniapp-logo-secondary);
+}
+
+.miniapp-active-shadow {
+  box-shadow: var(--miniapp-nav-active-shadow);
+}
+
+.miniapp-field-message {
+  transform-origin: top left;
+}
+
+.miniapp-feedback-panel {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  padding: 0.875rem;
+  margin-top: 1rem;
+  color: var(--tg-text-color);
+  border: 1px solid var(--miniapp-border-color);
+  border-radius: 1.5rem;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.miniapp-feedback-info {
+  background:
+    linear-gradient(135deg, rgba(14, 165, 233, 0.14), transparent),
+    var(--tg-secondary-bg-color);
+}
+
+.miniapp-feedback-success {
+  background:
+    linear-gradient(135deg, rgba(16, 185, 129, 0.18), transparent),
+    var(--tg-secondary-bg-color);
+}
+
+.miniapp-feedback-error {
+  background:
+    linear-gradient(135deg, rgba(244, 63, 94, 0.18), transparent),
+    var(--tg-secondary-bg-color);
+}
+
+.route-transition-host {
+  min-width: 0;
+  min-height: 100vh;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--route-accent, #2aabee) 8%, transparent), transparent 18rem);
+}
+
+.route-transition-view {
+  min-width: 0;
+  min-height: 100vh;
+  transform-origin: center top;
+}
+
+.route-transition-view::before {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 60;
+  height: 2px;
+  pointer-events: none;
+  content: '';
+  background: linear-gradient(90deg, transparent, var(--route-accent, #2aabee), transparent);
+  opacity: 0;
+  transform: scaleX(0.35);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .miniapp-enter {
+    animation: miniapp-enter 420ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  .miniapp-command-hero::before {
+    animation: miniapp-hero-sheen 8s ease-in-out infinite;
+  }
+
+  .route-transition-view {
+    will-change: opacity, transform;
+  }
+
+  .route-transition-view[data-phase='enter'][data-direction='forward'] {
+    animation: route-enter-forward 280ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  .route-transition-view[data-phase='enter'][data-direction='back'] {
+    animation: route-enter-back 280ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+
+  .route-transition-view[data-phase='enter'][data-direction='replace'],
+  .route-transition-view[data-phase='enter'][data-direction='neutral'] {
+    animation: route-enter-replace 220ms ease-out both;
+  }
+
+  .route-transition-view[data-phase='exit'][data-direction='forward'] {
+    animation: route-exit-forward 150ms ease-in both;
+  }
+
+  .route-transition-view[data-phase='exit'][data-direction='back'] {
+    animation: route-exit-back 150ms ease-in both;
+  }
+
+  .route-transition-view[data-phase='exit'][data-direction='replace'],
+  .route-transition-view[data-phase='exit'][data-direction='neutral'] {
+    animation: route-exit-replace 150ms ease-in both;
+  }
+
+  .route-transition-view[data-phase='enter']::before {
+    animation: route-accent-scan 420ms ease-out both;
+  }
+
+  .miniapp-field-message {
+    animation: miniapp-field-message 180ms ease-out both;
+  }
+
+  .miniapp-feedback-panel {
+    animation: miniapp-feedback-enter 220ms cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  }
+}
+
+@media (hover: hover) {
+  .miniapp-pressable:hover {
+    transform: translateY(-1px);
+  }
+
+  .miniapp-pressable:hover:active {
+    transform: translateY(1px) scale(0.985);
+  }
+}
+
+@keyframes miniapp-enter {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes route-enter-forward {
+  from {
+    opacity: 0;
+    transform: translate3d(18px, 8px, 0) scale(0.992);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes route-enter-back {
+  from {
+    opacity: 0;
+    transform: translate3d(-18px, 6px, 0) scale(0.994);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes route-enter-replace {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes route-exit-forward {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translate3d(-12px, -4px, 0) scale(0.996);
+  }
+}
+
+@keyframes route-exit-back {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+
+  to {
+    opacity: 0;
+    transform: translate3d(12px, -4px, 0) scale(0.996);
+  }
+}
+
+@keyframes route-exit-replace {
+  from {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@keyframes route-accent-scan {
+  0% {
+    opacity: 0;
+    transform: scaleX(0.3);
+  }
+
+  28% {
+    opacity: 0.82;
+  }
+
+  100% {
+    opacity: 0;
+    transform: scaleX(1);
+  }
+}
+
+@keyframes miniapp-field-message {
+  from {
+    opacity: 0;
+    transform: translateY(-3px) scaleY(0.96);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+  }
+}
+
+@keyframes miniapp-feedback-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes miniapp-hero-sheen {
+  0%,
+  48% {
+    transform: translateX(-64%) rotate(8deg);
+    opacity: 0;
+  }
+
+  58% {
+    opacity: 1;
+  }
+
+  74%,
+  100% {
+    transform: translateX(64%) rotate(8deg);
+    opacity: 0;
+  }
+}

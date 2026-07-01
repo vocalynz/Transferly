@@ -9,10 +9,12 @@ const {
   getProviderHealthController,
   getProviderLaneController,
   getProviderReadinessController,
+  getProviderStatusController,
   listProviderReadinessController,
   listProviderInvoicesController,
   listProviderLanesController,
   listProviderPayoutsController,
+  preflightProviderActionController,
   listProvidersController,
   previewProviderInvoiceController,
   previewProviderPayoutController
@@ -28,6 +30,8 @@ router.get('/readiness', requireUserAuthIfConfigured, asyncHandler(listProviderR
 router.get('/:provider', requireUserAuthIfConfigured, asyncHandler(getProviderController));
 router.get('/:provider/readiness', requireUserAuthIfConfigured, asyncHandler(getProviderReadinessController));
 router.get('/:provider/health', requireUserAuthIfConfigured, asyncHandler(getProviderHealthController));
+router.get('/:provider/status', requireUserAuthIfConfigured, asyncHandler(getProviderStatusController));
+router.get('/:provider/actions/:operation/preflight', requireUserAuthIfConfigured, asyncHandler(preflightProviderActionController));
 router.get('/:provider/lanes', requireUserAuthIfConfigured, asyncHandler(listProviderLanesController));
 router.get('/:provider/lanes/:laneId', requireUserAuthIfConfigured, asyncHandler(getProviderLaneController));
 router.get('/:provider/invoices', requireUserAuthIfConfigured, asyncHandler(listProviderInvoicesController));

@@ -8,6 +8,7 @@ const { createPayoutSchema, listPayoutsQuerySchema } = require('../schemas/payou
 const {
   providerActivityQuerySchema,
   providerLaneParamsSchema,
+  providerOperationParamsSchema,
   providerParamsSchema
 } = require('../schemas/providerSchemas');
 const { paypalPayoutService } = require('../services/paypalPayoutService');
@@ -18,6 +19,7 @@ const { providerInvoiceService } = require('../services/providerInvoiceService')
 const { providerPayoutService } = require('../services/providerPayoutService');
 const { providerHealthService } = require('../services/providerHealthService');
 const { providerReadinessService } = require('../services/providerReadinessService');
+const { providerStatusService } = require('../services/providerStatusService');
 const { PROVIDER_CONTRACT_VERSION } = require('../constants/providerWorkspaceContract');
 const { AUDIT_ACTOR_TYPE } = require('../utils/constants');
 const { logger } = require('../utils/logger');
@@ -134,6 +136,24 @@ async function getProviderHealthController(request, response) {
   providerCapabilityService.getProviderCapabilities(provider);
   response.json({
     data: await providerHealthService.getProviderHealth(provider),
+    provider,
+    ...buildProviderContractMeta(request)
+  });
+}
+
+async function getProviderStatusController(request, response) {
+  const { provider } = parseProviderParams(request);
+  response.json({
+    data: await providerStatusService.getProviderStatus(provider),
+    provider,
+    ...buildProviderContractMeta(request)
+  });
+}
+
+async function preflightProviderActionController(request, response) {
+  const { provider, operation } = providerOperationParamsSchema.parse(request.params || {});
+  response.json({
+    data: await providerStatusService.preflightProviderAction(provider, operation),
     provider,
     ...buildProviderContractMeta(request)
   });
@@ -377,10 +397,12 @@ module.exports = {
   getProviderHealthController,
   getProviderLaneController,
   getProviderReadinessController,
+  getProviderStatusController,
   listProviderReadinessController,
   listProviderInvoicesController,
   listProviderLanesController,
   listProviderPayoutsController,
+  preflightProviderActionController,
   listProvidersController,
   previewProviderInvoiceController,
   previewProviderPayoutController

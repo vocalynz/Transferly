@@ -2274,11 +2274,12 @@ async function handleProviderWorkspace(ctx, slug) {
   const access = await getAccessStatus(ctx);
   rememberScreen(ctx, `PROVIDER:${service.slug}`);
   clearPendingPrompts(ctx);
-  const [readinessPayload, capabilityPayload, healthPayload, statusPayload, featuresPayload] = access.isAdmin
+  const [readinessPayload, capabilityPayload, healthPayload, providerStatusPayload, adminStatusPayload, featuresPayload] = access.isAdmin
     ? await Promise.all([
       getProviderReadinessPayload(service.slug),
       getProviderCapabilityPayload(service.slug),
       getProviderHealthPayload(service.slug),
+      getProviderStatusPayload(service.slug),
       adminGet(`/api/admin/payment-providers/${service.slug}`).catch(() => null),
       adminGet(`/api/admin/payment-providers/${service.slug}/invoice-features`).catch(() => null),
     ])
@@ -2286,32 +2287,45 @@ async function handleProviderWorkspace(ctx, slug) {
       getProviderReadinessPayload(service.slug),
       getProviderCapabilityPayload(service.slug),
       getProviderHealthPayload(service.slug),
+      getProviderStatusPayload(service.slug),
       Promise.resolve(null),
       Promise.resolve(null),
     ]);
   const readiness = readinessPayload?.data || null;
   const capability = capabilityPayload?.data || null;
   const health = healthPayload?.data || null;
-  const providerStatus = statusPayload?.provider || {};
+  const providerStatus = providerStatusPayload?.data || null;
+  const adminProviderStatus = adminStatusPayload?.provider || {};
   const providerFeatures = featuresPayload?.provider || {};
   const workspace = getProviderWorkspace(service.slug);
   const laneLines = (workspace?.lanes || [])
     .filter((lane) => lane.id !== "overview")
     .map((lane) => line(`${providerLaneStatusIcon(lane.status)} ${lane.label}`, `${providerLaneStatusLabel(lane.status)} · ${lane.summary}`));
-  const missingEnv = Array.isArray(providerStatus.missing_env) ? providerStatus.missing_env : [];
+  const missingEnv = Array.isArray(adminProviderStatus.missing_env) ? adminProviderStatus.missing_env : [];
   const healthActions = Array.isArray(health?.next_actions) ? health.next_actions : [];
-  const providerActions = Array.isArray(providerStatus.next_actions) ? providerStatus.next_actions : [];
-  const nextActions = [...providerActions, ...healthActions].slice(0, 3);
+  const providerActions = Array.isArray(providerStatus?.next_actions) ? providerStatus.next_actions : [];
+  const adminProviderActions = Array.isArray(adminProviderStatus.next_actions) ? adminProviderStatus.next_actions : [];
+  const nextActions = [...providerActions, ...adminProviderActions, ...healthActions].slice(0, 3);
   const nextSteps = formatProviderNextSteps(readiness);
   const lines = [
     `<b>${escapeHtml(service.title)} Workspace</b>`,
     "",
     escapeHtml(workspace?.shortDescription || "Choose the provider lane you want to inspect or operate."),
     "",
-    line("Contract", readinessPayload?.contract_version || capabilityPayload?.contract_version || healthPayload?.contract_version || PROVIDER_CONTRACT_VERSION),
-    ...(readiness ? formatProviderReadiness(readiness) : [line("Readiness", capability?.status || providerStatus.status || "catalog")]),
+    line(
+      "Contract",
+      readinessPayload?.contract_version ||
+        capabilityPayload?.contract_version ||
+        healthPayload?.contract_version ||
+        providerStatusPayload?.contract_version ||
+        PROVIDER_CONTRACT_VERSION,
+    ),
+    providerStatus
+      ? line("API Status", `${providerStatus.status || "unknown"} · ${providerStatus.health_status || "unknown"} · ${providerStatus.health_score ?? 0}/100`)
+      : null,
+    ...(readiness ? formatProviderReadiness(readiness) : [line("Readiness", capability?.status || adminProviderStatus.status || "catalog")]),
     ...(health ? formatProviderHealth(health) : []),
-    access.isAdmin ? line("Mode", providerStatus.mode || capability?.registry_status?.mode || "—") : null,
+    access.isAdmin ? line("Mode", adminProviderStatus.mode || capability?.registry_status?.mode || "—") : null,
     access.isAdmin ? line("Invoice Features", formatProviderFeatureSummary(providerFeatures.invoice_features || capability?.registry_status?.invoice_features)) : null,
     missingEnv.length ? line("Missing Env", missingEnv.join(", ")) : null,
     nextActions.length ? line("Next Actions", nextActions.join("; ")) : null,
@@ -3153,6 +3167,14 @@ async function getProviderHealthPayload(provider) {
     providerRoutes.providerHealth(provider),
     {},
     contractShapes.providerHealth,
+  ).catch(() => null);
+}
+
+async function getProviderStatusPayload(provider) {
+  return providerApiGet(
+    providerRoutes.providerStatus(provider),
+    {},
+    contractShapes.providerStatus,
   ).catch(() => null);
 }
 

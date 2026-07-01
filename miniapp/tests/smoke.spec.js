@@ -247,8 +247,159 @@ const receiptRecord = {
   created_at: '2026-05-28T10:00:00.000Z'
 };
 
+const providerDisplayNames = {
+  paypal: 'PayPal',
+  stripe: 'Stripe',
+  crypto: 'Crypto Commerce',
+  paystack: 'Paystack',
+  flutterwave: 'Flutterwave',
+  wise: 'Wise'
+};
+
+const providerSlugs = Object.keys(providerDisplayNames);
+
+function getMockProviderOperations(provider) {
+  return {
+    invoices: {
+      status: ['paypal', 'stripe', 'paystack', 'flutterwave', 'crypto'].includes(provider) ? 'live' : 'setup',
+      implemented: ['paypal', 'stripe', 'paystack', 'flutterwave', 'crypto'].includes(provider)
+    },
+    payouts: {
+      status: ['paypal', 'crypto'].includes(provider) ? 'live' : 'setup',
+      implemented: ['paypal', 'crypto'].includes(provider)
+    },
+    balance: {
+      status: ['paypal', 'stripe', 'crypto'].includes(provider) ? 'live' : 'setup',
+      implemented: ['paypal', 'stripe', 'crypto'].includes(provider)
+    },
+    activity: {
+      status: 'live',
+      implemented: true
+    }
+  };
+}
+
+function getMockProviderLanes(provider) {
+  const laneSeeds = [
+    ['overview', 'Overview', 'overview'],
+    ['invoices', 'Collections', 'collect'],
+    ['payouts', 'Sending', 'send'],
+    ['balances', 'Balances', 'balance'],
+    ['activity', 'Activity', 'activity']
+  ];
+
+  return laneSeeds.map(([id, label, intent]) => ({
+    id,
+    label,
+    intent,
+    bot_action: `provider:${provider}:${id}`
+  }));
+}
+
+function buildProviderCapability(provider) {
+  return {
+    slug: provider,
+    display_name: providerDisplayNames[provider] || provider,
+    operations: getMockProviderOperations(provider),
+    lanes: getMockProviderLanes(provider)
+  };
+}
+
+function buildProviderReadiness(provider) {
+  const operations = getMockProviderOperations(provider);
+
+  return {
+    provider,
+    display_name: providerDisplayNames[provider] || provider,
+    ready: Object.values(operations).some((operation) => operation.implemented),
+    operations: Object.entries(operations).map(([operation, value]) => ({ operation, ...value })),
+    lanes: getMockProviderLanes(provider),
+    recommended_next_steps: []
+  };
+}
+
+function buildProviderHealth(provider) {
+  return providerHealth.find((item) => item.provider === provider) || {
+    provider,
+    display_name: providerDisplayNames[provider] || provider,
+    provider_status: provider === 'wise' ? 'setup' : 'ready',
+    score: provider === 'wise' ? 58 : 90,
+    status: provider === 'wise' ? 'setup' : 'healthy',
+    failed_webhooks: 0,
+    recent_webhooks: 0,
+    unresolved_issues: 0,
+    reasons: [],
+    next_actions: []
+  };
+}
+
+function buildProviderStatus(provider) {
+  const health = buildProviderHealth(provider);
+  const readiness = buildProviderReadiness(provider);
+
+  return {
+    provider,
+    display_name: providerDisplayNames[provider] || provider,
+    status: readiness.ready ? 'ready' : 'setup',
+    ready: readiness.ready,
+    provider_status: health.provider_status,
+    health_status: health.status,
+    health_score: health.score,
+    operations: readiness.operations,
+    lanes: readiness.lanes,
+    warnings: health.reasons || [],
+    next_actions: health.next_actions || []
+  };
+}
+
+function buildProviderPreflight(provider, operation) {
+  const providerOperations = getMockProviderOperations(provider);
+  const operationState = providerOperations[operation] || { status: 'setup', implemented: false };
+  const allowed = Boolean(operationState.implemented && operationState.status === 'live');
+
+  return {
+    allowed,
+    provider,
+    operation,
+    label: operation.charAt(0).toUpperCase() + operation.slice(1),
+    status: operationState.status,
+    reason: allowed ? 'Action ready.' : 'Provider operation is gated until setup completes.',
+    code: allowed ? 'PROVIDER_ACTION_READY' : 'PROVIDER_OPERATION_NOT_AVAILABLE',
+    supported_providers: ['paypal', 'stripe', 'crypto'],
+    warnings: [],
+    next_actions: []
+  };
+}
+
+function buildProviderBalance(provider) {
+  const balances = {
+    paypal: { available: '1250.00', currency: 'USD' },
+    stripe: { available: '3210.50', currency: 'USD' },
+    crypto: { available: '84.00', currency: 'USD' }
+  };
+
+  return balances[provider] || { available: '0.00', currency: 'USD' };
+}
+
+function buildProviderActivity(provider) {
+  return [
+    {
+      id: `${provider}_activity_1001`,
+      type: 'invoice',
+      provider,
+      label: `${providerDisplayNames[provider] || provider} invoice sync`,
+      status: 'processed'
+    }
+  ];
+}
+
 async function mockTransferlyApi(page, options = {}) {
-  const { seedTokens = true, onTelegramMiniAppLogin } = options;
+  const {
+    seedTokens = true,
+    onTelegramMiniAppLogin,
+    providerFailures = {},
+    onApiRequest
+  } = options;
 
   if (seedTokens) {
     await page.addInitScript(() => {
@@ -260,26 +411,65 @@ async function mockTransferlyApi(page, options = {}) {
   await page.route(/\/api(\/|$)/, async (route) => {
     const url = new URL(route.request().url());
     const path = url.pathname;
+    const method = route.request().method();
+    const requestHeaders = route.request().headers();
+    const requestId = requestHeaders['x-request-id'] || 'req-miniapp-test';
     const corsHeaders = {
       'Access-Control-Allow-Origin': '*',
       'Access-Control-Allow-Headers': 'Accept, Authorization, Content-Type, X-Request-Id, X-Telegram-Init-Data, X-Telegram-Start-Param, X-Transferly-Client',
       'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS'
     };
+    const responseHeaders = { ...corsHeaders, 'x-request-id': requestId };
 
-    const json = (payload) =>
-      route.fulfill({
-        status: 200,
+    onApiRequest?.({ path, method, headers: requestHeaders });
+
+    const json = (payload, status = 200, headers = {}) => {
+      const body =
+        payload && typeof payload === 'object' && !Array.isArray(payload) && !payload.requestId
+          ? { ...payload, requestId }
+          : payload;
+
+      return route.fulfill({
+        status,
         contentType: 'application/json',
-        headers: corsHeaders,
-        body: JSON.stringify(payload)
+        headers: { ...responseHeaders, ...headers },
+        body: JSON.stringify(body)
+      });
+    };
+
+    const failJson = (failure = {}) =>
+      route.fulfill({
+        status: failure.status || 503,
+        contentType: 'application/json',
+        headers: {
+          ...responseHeaders,
+          ...(failure.retryAfter ? { 'retry-after': String(failure.retryAfter) } : {}),
+          ...(failure.headers || {}),
+          'x-request-id': failure.requestId || requestId
+        },
+        body: JSON.stringify({
+          error: {
+            message: failure.message || 'Provider API unavailable.',
+            code: failure.code || 'API_ERROR',
+            retryAfter: failure.retryAfter
+          },
+          retryAfter: failure.retryAfter,
+          requestId: failure.requestId || requestId
+        })
       });
 
-    if (route.request().method() === 'OPTIONS') {
+    if (method === 'OPTIONS') {
       await route.fulfill({
         status: 204,
-        headers: corsHeaders,
+        headers: responseHeaders,
         body: ''
       });
+      return;
+    }
+
+    const failure = providerFailures[`${method} ${path}`] || providerFailures[path];
+    if (failure) {
+      await failJson(failure);
       return;
     }
 
@@ -287,7 +477,7 @@ async function mockTransferlyApi(page, options = {}) {
       await json({
         platform: {
           platform_name: 'Transferly',
-          brand_color: '#f8812d',
+          brand_color: '#2aabee',
           bank_slip_cost: 10,
           email_receipt_cost: 5
         },
@@ -318,6 +508,132 @@ async function mockTransferlyApi(page, options = {}) {
       return;
     }
 
+    if (path === '/api/providers') {
+      await json({
+        data: providerSlugs.map(buildProviderCapability),
+        contract_version: '2026-06-provider-v1'
+      });
+      return;
+    }
+
+    if (path === '/api/providers/readiness') {
+      await json({
+        data: providerSlugs.map(buildProviderReadiness),
+        contract_version: '2026-06-provider-v1'
+      });
+      return;
+    }
+
+    const providerRouteMatch = path.match(/^\/api\/providers\/([^/]+)(?:\/(.*))?$/);
+    if (providerRouteMatch) {
+      const provider = decodeURIComponent(providerRouteMatch[1]);
+      const rest = providerRouteMatch[2] || '';
+
+      if (!providerSlugs.includes(provider)) {
+        await json({
+          error: {
+            message: 'Provider not found.',
+            code: 'PROVIDER_NOT_FOUND'
+          }
+        }, 404);
+        return;
+      }
+
+      if (!rest) {
+        await json({
+          data: buildProviderCapability(provider),
+          provider,
+          contract_version: '2026-06-provider-v1'
+        });
+        return;
+      }
+
+      if (rest === 'readiness') {
+        await json({
+          data: buildProviderReadiness(provider),
+          provider,
+          contract_version: '2026-06-provider-v1'
+        });
+        return;
+      }
+
+      if (rest === 'health') {
+        await json({
+          data: buildProviderHealth(provider),
+          provider,
+          contract_version: '2026-06-provider-v1'
+        });
+        return;
+      }
+
+      if (rest === 'status') {
+        await json({
+          data: buildProviderStatus(provider),
+          provider,
+          contract_version: '2026-06-provider-v1'
+        });
+        return;
+      }
+
+      if (rest === 'lanes') {
+        await json({
+          data: getMockProviderLanes(provider),
+          provider,
+          contract_version: '2026-06-provider-v1'
+        });
+        return;
+      }
+
+      const preflightMatch = rest.match(/^actions\/([^/]+)\/preflight$/);
+      if (preflightMatch) {
+        const operation = decodeURIComponent(preflightMatch[1]);
+        await json({
+          data: buildProviderPreflight(provider, operation),
+          provider,
+          contract_version: '2026-06-provider-v1'
+        });
+        return;
+      }
+
+      if (rest === 'balance') {
+        await json({
+          balance: buildProviderBalance(provider),
+          provider,
+          contract_version: '2026-06-provider-v1'
+        });
+        return;
+      }
+
+      if (rest === 'activity') {
+        await json({
+          data: buildProviderActivity(provider),
+          provider,
+          contract_version: '2026-06-provider-v1'
+        });
+        return;
+      }
+
+      if (rest === 'invoices') {
+        await json({
+          data: [invoiceRecord, stripeInvoiceRecord].filter((invoice) => invoice.provider === provider),
+          provider,
+          pagination: { page: 1, page_size: 50, total: 1, has_next_page: false },
+          contract_version: '2026-06-provider-v1'
+        });
+        return;
+      }
+
+      if (rest === 'payouts') {
+        await json({
+          data: [payoutRecord, cryptoPayoutRecord].filter((payout) => payout.provider === provider),
+          provider,
+          pagination: { page: 1, page_size: 50, total: 1, has_next_page: false },
+          contract_version: '2026-06-provider-v1'
+        });
+        return;
+      }
+    }
+
     if (path === '/api/receipt/generate') {
       await json({
         receipt: {
@@ -337,7 +653,7 @@ async function mockTransferlyApi(page, options = {}) {
       return;
     }
 
-    if (path === '/api/user/me/top-up-orders' && route.request().method() === 'POST') {
+    if (path === '/api/user/me/top-up-orders' && method === 'POST') {
       const body = route.request().postDataJSON();
       await json({
         order: {
@@ -369,7 +685,7 @@ async function mockTransferlyApi(page, options = {}) {
       return;
     }
 
-    if (path === '/api/payouts' && route.request().method() === 'POST') {
+    if (path === '/api/payouts' && method === 'POST') {
       const body = route.request().postDataJSON();
       await json({
         payout_id: 'payout_miniapp_1001',
@@ -428,7 +744,7 @@ async function mockTransferlyApi(page, options = {}) {
       return;
     }
 
-    if (path === '/api/admin/dead-letters/dead_letter_stripe_1001/recover' && route.request().method() === 'POST') {
+    if (path === '/api/admin/dead-letters/dead_letter_stripe_1001/recover' && method === 'POST') {
       await json({
         dead_letter: {
           ...deadLetterJobs[0],
@@ -599,6 +915,59 @@ test('mini app command center renders with mocked account data', async ({ page }
   await expect(page.getByText('5,000 pts').last()).toBeVisible();
   await expect(page.getByRole('link', { name: /Buy Points/i }).first()).toBeVisible();
   await expect(page.getByRole('link', { name: /Support AI Reply/i }).first()).toBeVisible();
+});
+
+test('mini app keeps the Telegram dark-blue wallet theme across core routes', async ({ page }) => {
+  const pageErrors = [];
+  page.on('pageerror', (error) => pageErrors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') {
+      pageErrors.push(message.text());
+    }
+  });
+
+  await primeMiniAppUi(page, { theme: 'dark' });
+  await mockTransferlyApi(page);
+
+  const routes = [
+    '/miniapp',
+    '/miniapp/services',
+    '/miniapp/wallet',
+    '/miniapp/profile',
+    '/miniapp/services/paypal/overview',
+    '/miniapp/services/stripe/overview'
+  ];
+
+  for (const width of [360, 390, 430]) {
+    await page.setViewportSize({ width, height: 844 });
+
+    for (const route of routes) {
+      await page.goto(route);
+      await expect(page.locator('.transferly-miniapp-skin').first()).toBeVisible();
+      await expect(page.locator('main, section').first()).toBeVisible();
+
+      const theme = await page.evaluate(() => {
+        const root = document.querySelector('.transferly-miniapp-skin') || document.documentElement;
+        const rootStyle = window.getComputedStyle(root);
+        const bodyStyle = window.getComputedStyle(document.body);
+        const documentRoot = document.documentElement;
+
+        return {
+          tgBg: rootStyle.getPropertyValue('--tg-bg-color').trim(),
+          tgButton: rootStyle.getPropertyValue('--tg-button-color').trim(),
+          bodyBg: bodyStyle.backgroundColor,
+          hasHorizontalOverflow: documentRoot.scrollWidth > documentRoot.clientWidth + 1
+        };
+      });
+
+      expect(theme.tgBg, `${route} at ${width}px`).toBe('#0b1524');
+      expect(theme.tgButton, `${route} at ${width}px`).toBe('#2aabee');
+      expect(theme.bodyBg, `${route} at ${width}px`).toBe('rgb(11, 21, 36)');
+      expect(theme.hasHorizontalOverflow, `${route} at ${width}px`).toBe(false);
+    }
+  }
+
+  expect(pageErrors).toEqual([]);
 });
 
 test('mini app shows Telegram launch guidance without a session', async ({ page }) => {
@@ -910,6 +1279,51 @@ test('mini app provider command center scopes provider operations', async ({ pag
   await expect(page.getByText('Dead-letter job recovered')).toBeVisible();
 });
 
+test('mini app sends provider API correlation headers', async ({ page }) => {
+  const providerRequests = [];
+
+  await primeMiniAppUi(page);
+  await mockTransferlyApi(page, {
+    onApiRequest: (entry) => {
+      if (entry.method !== 'OPTIONS' && entry.path.startsWith('/api/providers')) {
+        providerRequests.push(entry);
+      }
+    }
+  });
+
+  await page.goto('/miniapp/services/stripe/overview');
+  await expectProviderWorkspace(page, 'Stripe');
+
+  expect(providerRequests.length).toBeGreaterThan(0);
+  for (const request of providerRequests) {
+    expect(request.headers['x-request-id'], request.path).toBeTruthy();
+    expect(request.headers['x-transferly-client'], request.path).toBe('telegram-miniapp');
+  }
+});
+
+test('mini app displays provider API error codes and request IDs', async ({ page }) => {
+  await primeMiniAppUi(page);
+  await mockTransferlyApi(page, {
+    providerFailures: {
+      'GET /api/providers/stripe/readiness': {
+        status: 429,
+        code: 'RATE_LIMITED',
+        message: 'Provider API rate limit reached.',
+        retryAfter: '2',
+        requestId: 'req-provider-rate-limit'
+      }
+    }
+  });
+
+  await page.goto('/miniapp/services/stripe/overview');
+
+  await expect(page.getByText('Provider API rate limit reached.')).toBeVisible({ timeout: 10000 });
+  await expect(page.getByText('Status 429')).toBeVisible();
+  await expect(page.getByText('RATE_LIMITED')).toBeVisible();
+  await expect(page.getByText('Request req-provider-rate-limit')).toBeVisible();
+  await expect(page.getByText('Retry after 2s')).toBeVisible();
+});
+
 for (const width of [360, 390, 430]) {
   test(`mini app provider command center remains usable at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 });
@@ -947,6 +1361,11 @@ test('mini app exchanges Telegram init data for a Transferly session on launch',
         const initData = 'query_id=telegram-test&user=%7B%22id%22%3A9001%2C%22first_name%22%3A%22Mini%22%2C%22last_name%22%3A%22User%22%7D&auth_date=1770000000&hash=test-signature';
         window.Telegram = {
           WebApp: {
+            version: '7.0',
+            isVersionAtLeast(version) {
+              const [major, minor] = String(version).split('.').map(Number);
+              return major < 7 || (major === 7 && minor <= 0);
+            },
             initData,
             initDataUnsafe: {
               start_param: 'wallet',
@@ -1002,6 +1421,88 @@ test('mini app exchanges Telegram init data for a Transferly session on launch',
   await expect(page.getByRole('link', { name: /MU Mini User/ })).toBeVisible();
 });
 
+test('mini app avoids unsupported Telegram methods on older clients', async ({ page }) => {
+  const pageErrors = [];
+  page.on('pageerror', (error) => pageErrors.push(error.message));
+  page.on('console', (message) => {
+    if (message.type() === 'error') {
+      pageErrors.push(message.text());
+    }
+  });
+
+  await mockTransferlyApi(page, { seedTokens: false });
+  await page.route('https://telegram.org/js/telegram-web-app.js', async (route) => {
+    await route.fulfill({
+      contentType: 'application/javascript',
+      body: `
+        window.Telegram = {
+          WebApp: {
+            version: '6.0',
+            isVersionAtLeast() {
+              return false;
+            },
+            initData: 'query_id=old-client',
+            initDataUnsafe: {
+              user: {
+                id: 9002,
+                first_name: 'Old',
+                username: 'old_client'
+              }
+            },
+            themeParams: {},
+            ready() {},
+            expand() {},
+            setHeaderColor() {
+              throw new Error('setHeaderColor should be version-gated');
+            },
+            setBackgroundColor() {
+              throw new Error('setBackgroundColor should be version-gated');
+            },
+            BackButton: {
+              show() {
+                throw new Error('BackButton show should be version-gated');
+              },
+              hide() {
+                throw new Error('BackButton hide should be version-gated');
+              },
+              onClick() {
+                throw new Error('BackButton onClick should be version-gated');
+              },
+              offClick() {}
+            },
+            SettingsButton: {
+              show() {
+                throw new Error('SettingsButton show should be version-gated');
+              },
+              hide() {},
+              onClick() {},
+              offClick() {}
+            },
+            MainButton: {
+              setText() {},
+              enable() {},
+              show() {},
+              hide() {},
+              onClick() {},
+              offClick() {},
+              hideProgress() {}
+            },
+            HapticFeedback: {
+              impactOccurred() {},
+              notificationOccurred() {}
+            }
+          }
+        };
+      `
+    });
+  });
+
+  await page.goto('/miniapp');
+
+  await expect(page.getByText('Telegram session secured').last()).toBeVisible({ timeout: 10000 });
+  expect(pageErrors).toEqual([]);
+});
+
 test('mini app honors Telegram launch hash parameters', async ({ page }) => {
   await primeMiniAppUi(page);
   await mockTransferlyApi(page);
@@ -1034,6 +1535,11 @@ test('mini app exposes Telegram settings and saves local preferences', async ({ 
         window.__telegramSettings = { shown: false, click: null };
         window.Telegram = {
           WebApp: {
+            version: '7.0',
+            isVersionAtLeast(version) {
+              const [major, minor] = String(version).split('.').map(Number);
+              return major < 7 || (major === 7 && minor <= 0);
+            },
             initData: 'query_id=test',
             initDataUnsafe: {
               user: {

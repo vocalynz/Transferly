@@ -103,6 +103,54 @@ export function getTelegramVersion(webApp = getTelegramWebApp()) {
   return webApp?.version || '';
 }
 
+function compareTelegramVersions(current, minimum) {
+  const currentParts = String(current || '').split('.').map((part) => Number(part) || 0);
+  const minimumParts = String(minimum || '').split('.').map((part) => Number(part) || 0);
+  const length = Math.max(currentParts.length, minimumParts.length);
+
+  for (let index = 0; index < length; index += 1) {
+    const currentPart = currentParts[index] || 0;
+    const minimumPart = minimumParts[index] || 0;
+    if (currentPart > minimumPart) {
+      return 1;
+    }
+    if (currentPart < minimumPart) {
+      return -1;
+    }
+  }
+
+  return 0;
+}
+
+export function isTelegramVersionAtLeast(webApp = getTelegramWebApp(), minimumVersion = '1.0') {
+  if (!webApp) {
+    return false;
+  }
+
+  if (typeof webApp.isVersionAtLeast === 'function') {
+    try {
+      return Boolean(webApp.isVersionAtLeast(minimumVersion));
+    } catch (_error) {
+      return false;
+    }
+  }
+
+  const version = getTelegramVersion(webApp);
+  if (!version) {
+    return true;
+  }
+
+  return compareTelegramVersions(version, minimumVersion) >= 0;
+}
+
+function safeTelegramCall(callback) {
+  try {
+    callback?.();
+  } catch (_error) {
+    // Telegram WebApp method support varies by client version and platform.
+  }
+}
+
 export function getTelegramColorScheme(webApp = getTelegramWebApp()) {
   return webApp?.colorScheme || webApp?.color_scheme || 'light';
 }
@@ -181,13 +229,12 @@ export function initializeTelegramMiniApp() {
     };
   }
 
-  try {
-    webApp.ready?.();
-    webApp.expand?.();
-    webApp.setHeaderColor?.(theme.header_bg_color || theme.bg_color);
-    webApp.setBackgroundColor?.(theme.bg_color);
-  } catch (_error) {
-    // Telegram clients differ by platform and version; unsupported calls are safe to ignore.
+  safeTelegramCall(() => webApp.ready?.());
+  safeTelegramCall(() => webApp.expand?.());
+
+  if (isTelegramVersionAtLeast(webApp, '6.1')) {
+    safeTelegramCall(() => webApp.setHeaderColor?.(theme.header_bg_color || theme.bg_color));
+    safeTelegramCall(() => webApp.setBackgroundColor?.(theme.bg_color));
   }
 
   return {
@@ -263,25 +310,25 @@ export function configureTelegramBackButton(webApp, {
   onClick
 } = {}) {
   const button = webApp?.BackButton;
-  if (!button) {
+  if (!button || !isTelegramVersionAtLeast(webApp, '6.1')) {
     return () => {};
   }
 
   if (visible) {
-    button.show?.();
+    safeTelegramCall(() => button.show?.());
   } else {
-    button.hide?.();
+    safeTelegramCall(() => button.hide?.());
   }
 
   if (onClick) {
-    button.onClick?.(onClick);
+    safeTelegramCall(() => button.onClick?.(onClick));
   }
 
   return () => {
     if (onClick) {
-      button.offClick?.(onClick);
+      safeTelegramCall(() => button.offClick?.(onClick));
     }
-    button.hide?.();
+    safeTelegramCall(() => button.hide?.());
   };
 }
 
@@ -290,23 +337,23 @@ export function configureTelegramSettingsButton(webApp, {
   onClick
 } = {}) {
   const button = webApp?.SettingsButton;
-  if (!button) {
+  if (!button || !isTelegramVersionAtLeast(webApp, '7.0')) {
     return () => {};
   }
 
   if (visible) {
-    button.show?.();
+    safeTelegramCall(() => button.show?.());
   } else {
-    button.hide?.();
+    safeTelegramCall(() => button.hide?.());
   }
 
   if (onClick) {
-    button.onClick?.(onClick);
+    safeTelegramCall(() => button.onClick?.(onClick));
   }
 
   return () => {
     if (onClick) {
-      button.offClick?.(onClick);
+      safeTelegramCall(() => button.offClick?.(onClick));
     }
   };
 }

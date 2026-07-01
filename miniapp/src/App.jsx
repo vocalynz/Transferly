@@ -161,7 +161,7 @@ function App() {
     <AppContextProvider>
       <TelegramMiniAppProvider>
         <MiniAppRuntimeProvider>
-          <Router>
+          <Router future={{ v7_relativeSplatPath: true, v7_startTransition: true }}>
             <AppFrame />
           </Router>
         </MiniAppRuntimeProvider>

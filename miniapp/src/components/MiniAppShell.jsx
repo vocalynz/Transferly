@@ -255,7 +255,7 @@ export default function MiniAppShell({
 
   if (immersive) {
     return (
-      <div className="min-h-screen bg-white text-[#0c0c0d]">
+      <div className={`transferly-miniapp-skin ${lightMode ? 'transferly-miniapp-skin-light' : ''} min-h-screen bg-[var(--tg-bg-color)] text-[var(--tg-text-color)]`}>
         {children}
       </div>
     );

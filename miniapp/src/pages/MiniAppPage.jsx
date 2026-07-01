@@ -1224,7 +1224,6 @@ function HeroPanel({ profile, telegram, receipts, topUpOrders }) {
   return (
     <section className="space-y-4 miniapp-enter">
       <div className="miniapp-command-hero relative overflow-hidden rounded-[32px] border border-[var(--miniapp-border-color)] p-5 text-white shadow-[0_28px_80px_rgba(0,0,0,0.34)] sm:p-6">
-        <div className="pointer-events-none absolute -right-12 -top-20 h-52 w-52 rounded-full bg-white/10 blur-3xl" />
         <div className="pointer-events-none absolute bottom-0 left-1/2 h-px w-2/3 -translate-x-1/2 bg-gradient-to-r from-transparent via-white/30 to-transparent" />
 
         <div className="relative grid gap-6 lg:grid-cols-[minmax(0,1fr)_310px] lg:items-stretch">
@@ -1248,7 +1247,7 @@ function HeroPanel({ profile, telegram, receipts, topUpOrders }) {
               </div>
               <Link
                 to="/miniapp/wallet"
-                className="miniapp-pressable inline-flex shrink-0 items-center justify-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-black text-[#15110f] shadow-[0_18px_44px_rgba(0,0,0,0.24)]"
+                className="miniapp-pressable inline-flex shrink-0 items-center justify-center gap-2 rounded-[8px] bg-[var(--tg-button-color)] px-5 py-3 text-sm font-black text-[var(--tg-button-text-color)] shadow-[0_18px_44px_rgba(0,0,0,0.24)]"
               >
                 <Zap size={17} />
                 Buy Points
@@ -1296,7 +1295,7 @@ function HeroPanel({ profile, telegram, receipts, topUpOrders }) {
                 const Icon = step.icon;
                 return (
                   <div key={step.label} className="flex items-center gap-3">
-                    <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[16px] ${step.active ? 'bg-white text-[#15110f]' : 'bg-white/10 text-white/52'}`}>
+                    <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-[8px] ${step.active ? 'bg-[var(--tg-button-color)] text-[var(--tg-button-text-color)]' : 'bg-white/10 text-white/52'}`}>
                       <Icon size={18} />
                     </span>
                     <span className="min-w-0 flex-1">
@@ -1374,7 +1373,7 @@ function FeaturedStrip() {
       </div>
       <Link
         to={getMiniAppServiceTarget(primary)}
-        className="group block overflow-hidden rounded-[30px] bg-[#2b211b] p-5 text-[var(--tg-text-color)] shadow-[0_18px_46px_rgba(0,0,0,0.24)] transition active:scale-[0.99]"
+        className="group block overflow-hidden rounded-[8px] border border-[var(--miniapp-border-color)] bg-[var(--tg-section-bg-color)] p-5 text-[var(--tg-text-color)] shadow-[0_18px_46px_rgba(0,0,0,0.24)] transition active:scale-[0.99]"
       >
         <div className="flex items-start justify-between gap-4">
           <ServiceLogo service={primary} size="lg" />
@@ -1460,7 +1459,7 @@ function ServiceCatalogTile({ service }) {
   return (
     <Link
       to={getMiniAppServiceTarget(service)}
-      className="relative flex min-h-[112px] flex-col items-center justify-center rounded-[22px] bg-[var(--tg-secondary-bg-color)] p-3 text-center text-[var(--tg-text-color)] transition hover:bg-[#241d18] active:scale-[0.98]"
+      className="relative flex min-h-[112px] flex-col items-center justify-center rounded-[8px] border border-[var(--miniapp-border-color)] bg-[var(--tg-secondary-bg-color)] p-3 text-center text-[var(--tg-text-color)] transition hover:bg-[var(--tg-section-bg-color)] active:scale-[0.98]"
       aria-disabled={soon}
     >
       {service.badge ? (
@@ -1482,7 +1481,7 @@ function ScriptCatalogTile({ service }) {
   return (
     <Link
       to={getMiniAppServiceTarget(service)}
-      className="group block rounded-[24px] bg-[var(--tg-secondary-bg-color)] p-4 text-[var(--tg-text-color)] transition hover:bg-[#241d18] active:scale-[0.99]"
+      className="group block rounded-[8px] border border-[var(--miniapp-border-color)] bg-[var(--tg-secondary-bg-color)] p-4 text-[var(--tg-text-color)] transition hover:bg-[var(--tg-section-bg-color)] active:scale-[0.99]"
     >
       <div className="flex items-start gap-3">
         <ServiceLogo service={service} size="lg" />
@@ -1513,7 +1512,7 @@ function ServicesSection() {
       {aiReply ? (
         <Link
           to={getMiniAppServiceTarget(aiReply)}
-          className="group flex items-center gap-4 rounded-[30px] bg-[#2b211b] p-4 text-[var(--tg-text-color)] transition active:scale-[0.99]"
+          className="group flex items-center gap-4 rounded-[8px] border border-[var(--miniapp-border-color)] bg-[var(--tg-section-bg-color)] p-4 text-[var(--tg-text-color)] transition active:scale-[0.99]"
         >
           <ServiceLogo service={aiReply} size="lg" />
           <span className="min-w-0 flex-1">

@@ -256,7 +256,12 @@ export async function apiRequest(path, options = {}) {
     );
     error.status = response.status;
     error.payload = payload;
-    error.code = payload?.code;
+    error.code = payload?.error?.code || payload?.code || null;
+    error.retryAfter =
+      response.headers.get('retry-after') ||
+      payload?.retryAfter ||
+      payload?.error?.retryAfter ||
+      null;
     error.requestId = responseRequestId;
     throw error;
   }
@@ -426,6 +431,14 @@ export function getProviderReadiness(provider) {
 
 export function getProviderHealth(provider) {
   return apiRequest(buildProviderPath(provider, 'health'));
+}
+
+export function getProviderStatus(provider) {
+  return apiRequest(buildProviderPath(provider, 'status'));
+}
+
+export function preflightProviderAction(provider, operation) {
+  return apiRequest(`${buildProviderPath(provider, 'actions')}/${encodeURIComponent(operation)}/preflight`);
 }
 
 export function listProviderLanes(provider) {

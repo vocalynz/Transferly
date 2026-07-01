@@ -65,6 +65,26 @@ test("bot provider workspaces link to supported mini app provider lanes", async 
   }
 });
 
+test("bot provider lanes expose launchable Mini App actions", () => {
+  for (const workspace of listProviderWorkspaces()) {
+    for (const lane of workspace.lanes) {
+      const section = buildProviderMiniAppSection(workspace.slug, lane.id);
+
+      assert.match(section, new RegExp(`^services/${workspace.slug}/[a-z0-9-]+$`));
+      assert.ok(lane.label, `${workspace.slug}:${lane.id} needs a menu label`);
+      assert.ok(lane.summary, `${workspace.slug}:${lane.id} needs guided-flow summary copy`);
+
+      if (lane.botAction) {
+        assert.match(
+          lane.botAction,
+          /^(PP:|PROVIDER_|provider:)/,
+          `${workspace.slug}:${lane.id} bot action should stay routeable by the bot command center`,
+        );
+      }
+    }
+  }
+});
+
 test("bot and mini app provider contracts stay package-local and version aligned", async () => {
   const miniAppContract = await loadMiniAppProviderContract();
 

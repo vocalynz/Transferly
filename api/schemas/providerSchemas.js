@@ -10,6 +10,12 @@ const providerLaneParamsSchema = providerParamsSchema.extend({
   laneId: z.string().trim().min(1)
 });
 
+const providerOperationSchema = z.enum(['invoices', 'payouts', 'balance', 'activity']);
+
+const providerOperationParamsSchema = providerParamsSchema.extend({
+  operation: providerOperationSchema
+});
+
 const providerActivityQuerySchema = z.object({
   type: z.enum(['all', 'invoice', 'payout']).default('all'),
   status: z.string().trim().min(1).max(64).optional(),
@@ -23,5 +29,7 @@ module.exports = {
   providerActivityQuerySchema,
   providerKeySchema,
   providerLaneParamsSchema,
+  providerOperationParamsSchema,
+  providerOperationSchema,
   providerParamsSchema
 };

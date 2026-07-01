@@ -49,6 +49,7 @@ body {
   --miniapp-nav-hover-bg: color-mix(in srgb, var(--tg-button-color, #2aabee) 10%, transparent);
   --miniapp-accent-soft: color-mix(in srgb, var(--tg-button-color, #2aabee) 18%, transparent);
   --miniapp-accent-border: color-mix(in srgb, var(--tg-button-color, #2aabee) 34%, transparent);
+  --miniapp-focus-ring: color-mix(in srgb, var(--tg-button-color, #2aabee) 48%, transparent);
   --miniapp-logo-badge-start: color-mix(in srgb, var(--tg-button-color, #2aabee) 86%, #1d4ed8 14%);
   --miniapp-logo-badge-end: color-mix(in srgb, var(--tg-link-color, #6ab3f3) 46%, #3730a3 54%);
   --miniapp-logo-foreground: #ffffff;
@@ -59,8 +60,6 @@ body {
   --miniapp-nav-active-shadow: 0 12px 30px color-mix(in srgb, var(--tg-button-color, #2aabee) 20%, transparent);
   color-scheme: dark;
   background:
-    radial-gradient(circle at 16% -10%, color-mix(in srgb, var(--tg-button-color, #2aabee) 18%, transparent), transparent 28rem),
-    radial-gradient(circle at 92% 8%, color-mix(in srgb, var(--tg-link-color, #6ab3f3) 10%, transparent), transparent 22rem),
     linear-gradient(180deg, var(--miniapp-shell-bg) 0%, color-mix(in srgb, var(--tg-bg-color, #0b1524) 92%, #020817 8%) 58%, #07111d 100%);
 }
 
@@ -94,6 +93,7 @@ body {
   --miniapp-nav-hover-bg: color-mix(in srgb, var(--tg-button-color) 10%, transparent);
   --miniapp-accent-soft: color-mix(in srgb, var(--tg-button-color) 14%, transparent);
   --miniapp-accent-border: color-mix(in srgb, var(--tg-button-color) 26%, transparent);
+  --miniapp-focus-ring: color-mix(in srgb, var(--tg-button-color) 38%, transparent);
   --miniapp-logo-badge-start: color-mix(in srgb, var(--tg-button-color) 88%, #1d4ed8 12%);
   --miniapp-logo-badge-end: color-mix(in srgb, var(--tg-link-color) 54%, #4338ca 46%);
   --miniapp-logo-foreground: #ffffff;
@@ -104,7 +104,6 @@ body {
   --miniapp-nav-active-shadow: 0 12px 30px rgba(15, 23, 42, 0.1);
   color-scheme: light;
   background:
-    radial-gradient(circle at 15% -10%, color-mix(in srgb, var(--tg-button-color) 12%, transparent), transparent 28rem),
     linear-gradient(180deg, #f8fafc 0%, #f3f6fb 56%, #eef3f8 100%);
 }
 
@@ -134,20 +133,16 @@ a {
 .miniapp-command-hero {
   isolation: isolate;
   background:
-    radial-gradient(circle at 14% 0%, rgba(255, 255, 255, 0.2), transparent 18rem),
-    radial-gradient(circle at 84% 12%, rgba(14, 165, 233, 0.28), transparent 18rem),
     linear-gradient(
       135deg,
-      color-mix(in srgb, var(--tg-button-color) 82%, #0b1524) 0%,
-      color-mix(in srgb, var(--tg-secondary-bg-color) 78%, #020817) 50%,
-      color-mix(in srgb, var(--tg-link-color) 32%, #020817) 100%
+      color-mix(in srgb, var(--tg-button-color) 76%, #0b1524) 0%,
+      color-mix(in srgb, var(--tg-secondary-bg-color) 84%, #020817) 52%,
+      color-mix(in srgb, var(--tg-link-color) 24%, #020817) 100%
     );
 }
 
 .transferly-miniapp-skin-light .miniapp-command-hero {
   background:
-    radial-gradient(circle at 14% 0%, rgba(255, 255, 255, 0.48), transparent 18rem),
-    radial-gradient(circle at 84% 12%, rgba(14, 165, 233, 0.22), transparent 18rem),
     linear-gradient(
       135deg,
       color-mix(in srgb, var(--tg-button-color) 86%, #111827) 0%,
@@ -232,7 +227,7 @@ a {
   margin-top: 1rem;
   color: var(--tg-text-color);
   border: 1px solid var(--miniapp-border-color);
-  border-radius: 1.5rem;
+  border-radius: 8px;
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 

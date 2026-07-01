@@ -10,6 +10,7 @@ process.env.CRYPTO_COMMERCE_API_KEY = process.env.CRYPTO_COMMERCE_API_KEY || 'cr
 
 const { providerCapabilityService } = require('../services/providerCapabilityService');
 const { providerReadinessService } = require('../services/providerReadinessService');
+const { providerStatusService } = require('../services/providerStatusService');
 const { AppError } = require('../utils/errors');
 
 test('providerCapabilityService lists provider capabilities without exposing secrets', () => {
@@ -107,4 +108,31 @@ test('providerReadinessService lists all provider readiness contracts', () => {
   assert.deepEqual(readiness.map((provider) => provider.provider), ['paypal', 'stripe', 'wise', 'paystack', 'flutterwave', 'crypto']);
   assert.ok(readiness.every((provider) => Array.isArray(provider.operations)));
   assert.ok(readiness.every((provider) => Array.isArray(provider.recommended_next_steps)));
+});
+
+test('providerStatusService summarizes status and preflights provider actions safely', async () => {
+  const status = await providerStatusService.getProviderStatus('stripe');
+
+  assert.equal(status.provider, 'stripe');
+  assert.equal(status.display_name, 'Stripe');
+  assert.equal(typeof status.ready, 'boolean');
+  assert.equal(typeof status.health_score, 'number');
+  assert.ok(status.operations.some((operation) => operation.operation === 'balance'));
+  assert.ok(Array.isArray(status.next_actions));
+
+  const allowed = await providerStatusService.preflightProviderAction('stripe', 'balance');
+  assert.equal(allowed.allowed, true);
+  assert.equal(allowed.provider, 'stripe');
+  assert.equal(allowed.operation, 'balance');
+  assert.equal(allowed.code, null);
+
+  const blocked = await providerStatusService.preflightProviderAction('wise', 'payouts');
+  assert.equal(blocked.allowed, false);
+  assert.equal(blocked.code, 'PROVIDER_OPERATION_NOT_AVAILABLE');
+  assert.equal(blocked.status, 'setup');
+  assert.deepEqual(blocked.supported_providers, ['paypal', 'stripe']);
+
+  const serialized = JSON.stringify({ status, allowed, blocked });
+  assert.equal(serialized.includes('paypal-client-secret'), false);
+  assert.equal(serialized.includes('sk_test_transferly'), false);
 });

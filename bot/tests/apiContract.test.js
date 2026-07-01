@@ -4,11 +4,13 @@ const test = require("node:test");
 const {
   ApiContractError,
   IDEMPOTENCY_HEADER,
+  REQUEST_ID_HEADER,
   adminRoutes,
   buildApiUrl,
   buildQuery,
   contractShapes,
   createMutationIdempotencyKey,
+  createRequestId,
   providerRoutes,
   PROVIDER_CONTRACT_VERSION,
   validateApiResponseContract,
@@ -16,6 +18,7 @@ const {
 
 test("API contract exposes the API idempotency header required by Express middleware", () => {
   assert.equal(IDEMPOTENCY_HEADER, "Idempotency-Key");
+  assert.equal(REQUEST_ID_HEADER, "x-request-id");
 });
 
 test("buildApiUrl skips empty query values and keeps valid filters", () => {
@@ -35,6 +38,8 @@ test("provider routes expose bot-friendly provider scoped endpoints", () => {
   assert.equal(providerRoutes.providers, "/api/providers");
   assert.equal(providerRoutes.lane("paypal", "custom-details"), "/api/providers/paypal/lanes/custom-details");
   assert.equal(providerRoutes.providerHealth("paypal"), "/api/providers/paypal/health");
+  assert.equal(providerRoutes.providerStatus("paypal"), "/api/providers/paypal/status");
+  assert.equal(providerRoutes.actionPreflight("paypal", "invoices"), "/api/providers/paypal/actions/invoices/preflight");
 
   const url = buildApiUrl("https://api.transferly.example/", providerRoutes.invoices("stripe"), {
     limit: 10,
@@ -50,6 +55,11 @@ test("mutation idempotency keys include the bot actor, route, and known entity h
   });
 
   assert.match(key, /^bot:\/api\/admin\/payouts\/payout-1\/approve:payout-1:/);
+});
+
+test("request IDs use bot-safe prefixes for API correlation", () => {
+  assert.match(createRequestId("bot-test"), /^bot-test:/);
+  assert.doesNotMatch(createRequestId("bot test/unsafe"), /[ /]/);
 });
 
 test("API response contracts accept expected shapes", () => {
@@ -169,6 +179,71 @@ test("API response contracts accept expected shapes", () => {
       },
       contractShapes.providerHealth,
       { method: "GET", url: "/api/providers/stripe/health", requestId: "req-provider-health" },
+    ),
+  );
+
+  assert.doesNotThrow(() =>
+    validateApiResponseContract(
+      {
+        data: {
+          provider: "stripe",
+          display_name: "Stripe",
+          status: "ready",
+          ready: true,
+          provider_status: "ready",
+          health_status: "operational",
+          health_score: 100,
+          operations: [],
+          lanes: [],
+          warnings: [],
+          next_actions: [],
+        },
+        provider: "stripe",
+        contract_version: PROVIDER_CONTRACT_VERSION,
+        requestId: "req-provider-status",
+      },
+      contractShapes.providerStatus,
+      { method: "GET", url: "/api/providers/stripe/status", requestId: "req-provider-status" },
+    ),
+  );
+
+  assert.doesNotThrow(() =>
+    validateApiResponseContract(
+      {
+        data: {
+          allowed: false,
+          provider: "wise",
+          operation: "payouts",
+          label: "Payouts",
+          status: "setup",
+          reason: "Provider operation is not available.",
+          code: "PROVIDER_OPERATION_NOT_AVAILABLE",
+          supported_providers: ["paypal", "stripe"],
+          warnings: [],
+          next_actions: [],
+        },
+        provider: "wise",
+        contract_version: PROVIDER_CONTRACT_VERSION,
+        requestId: "req-provider-preflight",
+      },
+      contractShapes.providerActionPreflight,
+      { method: "GET", url: "/api/providers/wise/actions/payouts/preflight", requestId: "req-provider-preflight" },
+    ),
+  );
+
+  assert.doesNotThrow(() =>
+    validateApiResponseContract(
+      {
+        error: {
+          message: "Provider API rate limit reached.",
+          code: "RATE_LIMITED",
+          retryAfter: "2",
+        },
+        requestId: "req-provider-rate-limit",
+        retryAfter: "2",
+      },
+      contractShapes.errorResponse,
+      { method: "GET", url: "/api/providers/stripe/readiness", requestId: "req-provider-rate-limit" },
     ),
   );
 });

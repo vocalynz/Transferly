@@ -22,8 +22,10 @@ import {
   getProviderCapability,
   getProviderHealth,
   getProviderReadiness,
+  getProviderStatus,
   getProviderScopedBalance,
-  listProviderActivity
+  listProviderActivity,
+  preflightProviderAction
 } from '../lib/api';
 import { getPaymentProviderLauncher } from '../lib/paymentProviderLaunchers';
 import {
@@ -141,6 +143,20 @@ function readOperation(readiness, operation) {
   return readiness?.operations?.find((item) => item.operation === operation) || null;
 }
 
+function formatOperationLabel(operation) {
+  return String(operation || '').charAt(0).toUpperCase() + String(operation || '').slice(1);
+}
+
+function normalizeApiError(error, fallback = 'Provider API state could not be loaded.') {
+  return {
+    message: error?.message || error?.payload?.error?.message || error?.payload?.message || fallback,
+    code: error?.code || error?.payload?.error?.code || error?.payload?.code || '',
+    requestId: error?.requestId || error?.payload?.requestId || '',
+    status: error?.status || '',
+    retryAfter: error?.retryAfter || error?.payload?.retryAfter || error?.payload?.error?.retryAfter || ''
+  };
+}
+
 function getLaneSupport(lane, manifest) {
   return lane?.support || manifest.laneSupport?.[lane?.id] || manifest.status || 'planned';
 }
@@ -149,9 +165,15 @@ function useProviderApiSnapshot(providerSlug) {
   const [snapshot, setSnapshot] = useState({
     loading: false,
     error: '',
+    errorCode: '',
+    errorRequestId: '',
+    errorStatus: '',
+    retryAfter: '',
     capability: null,
     readiness: null,
     health: null,
+    status: null,
+    preflight: [],
     contractVersion: PROVIDER_CONTRACT_VERSION,
     warnings: [],
     balance: null,
@@ -164,29 +186,45 @@ function useProviderApiSnapshot(providerSlug) {
     }
 
     let cancelled = false;
-    setSnapshot((current) => ({ ...current, loading: true, error: '', warnings: [] }));
+    setSnapshot((current) => ({
+      ...current,
+      loading: true,
+      error: '',
+      errorCode: '',
+      errorRequestId: '',
+      errorStatus: '',
+      retryAfter: '',
+      warnings: []
+    }));
 
     async function loadSnapshot() {
       try {
-        const [capabilityResult, readinessResult, healthResult] = await Promise.allSettled([
+        const [capabilityResult, readinessResult, healthResult, statusResult] = await Promise.allSettled([
           getProviderCapability(providerSlug),
           getProviderReadiness(providerSlug),
-          getProviderHealth(providerSlug)
+          getProviderHealth(providerSlug),
+          getProviderStatus(providerSlug)
         ]);
         const capability = capabilityResult.status === 'fulfilled' ? capabilityResult.value?.data : null;
         const readiness = readinessResult.status === 'fulfilled' ? readinessResult.value?.data : null;
         const health = healthResult.status === 'fulfilled' ? healthResult.value?.data : null;
+        const status = statusResult.status === 'fulfilled' ? statusResult.value?.data : null;
         const contractVersion =
           readinessResult.value?.contract_version ||
           capabilityResult.value?.contract_version ||
           healthResult.value?.contract_version ||
+          statusResult.value?.contract_version ||
           PROVIDER_CONTRACT_VERSION;
-        const baseErrors = [capabilityResult, readinessResult]
+        const baseErrorDetails = [capabilityResult, readinessResult]
           .filter((result) => result.status === 'rejected')
-          .map((result) => result.reason?.message || 'Provider API state could not be loaded.');
+          .map((result) => normalizeApiError(result.reason));
+        const primaryError = baseErrorDetails[0] || null;
         const warnings = healthResult.status === 'rejected'
-          ? [healthResult.reason?.message || 'Provider health could not be loaded.']
+          ? [normalizeApiError(healthResult.reason, 'Provider health could not be loaded.').message]
           : [];
+        if (statusResult.status === 'rejected') {
+          warnings.push(normalizeApiError(statusResult.reason, 'Provider status could not be loaded.').message);
+        }
 
         const [balanceResult, activityResult] = await Promise.allSettled([
           isProviderOperationImplemented(readOperation(readiness, 'balance')?.status)
@@ -197,11 +235,43 @@ function useProviderApiSnapshot(providerSlug) {
             : Promise.resolve(null)
         ]);
         if (balanceResult.status === 'rejected') {
-          warnings.push(balanceResult.reason?.message || 'Provider balance could not be loaded.');
+          warnings.push(normalizeApiError(balanceResult.reason, 'Provider balance could not be loaded.').message);
         }
         if (activityResult.status === 'rejected') {
-          warnings.push(activityResult.reason?.message || 'Provider activity could not be loaded.');
+          warnings.push(normalizeApiError(activityResult.reason, 'Provider activity could not be loaded.').message);
         }
+        const preflightResults = await Promise.allSettled(
+          PROVIDER_OPERATION_KEYS.map((operation) => preflightProviderAction(providerSlug, operation))
+        );
+        const preflight = preflightResults.map((result, index) => {
+          const operation = PROVIDER_OPERATION_KEYS[index];
+
+          if (result.status === 'fulfilled') {
+            return result.value?.data || {
+              operation,
+              label: formatOperationLabel(operation),
+              allowed: false,
+              status: 'unknown',
+              reason: 'Action preflight returned no data.',
+              code: 'PREFLIGHT_EMPTY',
+              supported_providers: [],
+              warnings: [],
+              next_actions: []
+            };
+          }
+
+          return {
+            operation,
+            label: formatOperationLabel(operation),
+            allowed: false,
+            status: 'unknown',
+            reason: result.reason?.message || 'Action preflight could not be loaded.',
+            code: result.reason?.code || 'PREFLIGHT_UNAVAILABLE',
+            supported_providers: [],
+            warnings: [],
+            next_actions: []
+          };
+        });
 
         if (cancelled) {
           return;
@@ -209,10 +279,16 @@ function useProviderApiSnapshot(providerSlug) {
 
         setSnapshot({
           loading: false,
-          error: baseErrors[0] || '',
+          error: primaryError?.message || '',
+          errorCode: primaryError?.code || '',
+          errorRequestId: primaryError?.requestId || '',
+          errorStatus: primaryError?.status || '',
+          retryAfter: primaryError?.retryAfter || '',
           capability,
           readiness,
           health,
+          status,
+          preflight,
           contractVersion,
           warnings: warnings.slice(0, 3),
           balance: balanceResult.status === 'fulfilled' ? balanceResult.value?.data : null,
@@ -221,11 +297,16 @@ function useProviderApiSnapshot(providerSlug) {
             : []
         });
       } catch (error) {
+        const normalizedError = normalizeApiError(error, 'Provider API snapshot could not be loaded.');
         if (!cancelled) {
           setSnapshot((current) => ({
             ...current,
             loading: false,
-            error: error?.message || 'Provider API snapshot could not be loaded.'
+            error: normalizedError.message,
+            errorCode: normalizedError.code,
+            errorRequestId: normalizedError.requestId,
+            errorStatus: normalizedError.status,
+            retryAfter: normalizedError.retryAfter
           }));
         }
       }
@@ -250,10 +331,31 @@ function ApiStateNotice({ snapshot }) {
   }
 
   if (snapshot.error) {
+    const details = [
+      snapshot.errorStatus ? `Status ${snapshot.errorStatus}` : '',
+      snapshot.errorCode || '',
+      snapshot.errorRequestId ? `Request ${snapshot.errorRequestId}` : '',
+      snapshot.retryAfter ? `Retry after ${snapshot.retryAfter}s` : ''
+    ].filter(Boolean);
+
     return (
       <div className="flex items-start gap-3 rounded-[22px] border border-red-400/30 bg-red-500/10 p-4">
         <AlertTriangle className="mt-0.5 shrink-0 text-red-200" size={18} />
-        <p className="text-sm font-bold leading-6 text-[var(--tg-text-color)]">{snapshot.error}</p>
+        <div className="min-w-0">
+          <p className="text-sm font-bold leading-6 text-[var(--tg-text-color)]">{snapshot.error}</p>
+          {details.length ? (
+            <div className="mt-3 flex flex-wrap gap-2">
+              {details.map((detail) => (
+                <span key={detail} className="rounded-full border border-red-200/20 bg-red-200/10 px-2.5 py-1 text-[11px] font-black text-red-50">
+                  {detail}
+                </span>
+              ))}
+            </div>
+          ) : null}
+          <p className="mt-2 text-xs font-bold leading-5 text-red-100/85">
+            Try again from the bot menu or reopen the workspace.
+          </p>
+        </div>
       </div>
     );
   }
@@ -423,8 +525,9 @@ function LaneSetupGrid({ manifest, lane }) {
   );
 }
 
-function OperationStatusGrid({ readiness, capability, loading, contractVersion }) {
+function OperationStatusGrid({ readiness, capability, preflight = [], loading, contractVersion }) {
   const operations = readiness?.operations || [];
+  const preflightByOperation = new Map((preflight || []).map((item) => [item.operation, item]));
   const steps = Array.isArray(readiness?.recommended_next_steps)
     ? readiness.recommended_next_steps.slice(0, 2)
     : [];
@@ -446,12 +549,18 @@ function OperationStatusGrid({ readiness, capability, loading, contractVersion }
       <div className="mt-4 grid gap-2 sm:grid-cols-4">
         {PROVIDER_OPERATION_KEYS.map((operation) => {
           const item = operations.find((entry) => entry.operation === operation);
-          const label = operation.charAt(0).toUpperCase() + operation.slice(1);
+          const preflightItem = preflightByOperation.get(operation);
+          const label = formatOperationLabel(operation);
           return (
             <div key={operation} className="rounded-[18px] border border-white/10 bg-white/[0.04] p-3">
               <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--tg-hint-color)]">{label}</p>
               <p className="mt-1 text-sm font-black text-[var(--tg-text-color)]">
                 {item?.status || capability?.operations?.[operation]?.status || 'setup'}
+              </p>
+              <p className="mt-1 text-[11px] font-bold leading-4 text-[var(--tg-subtitle-text-color)]">
+                {preflightItem
+                  ? (preflightItem.allowed ? 'Action ready' : preflightItem.reason || 'Action gated')
+                  : 'Preflight pending'}
               </p>
             </div>
           );
@@ -468,6 +577,44 @@ function OperationStatusGrid({ readiness, capability, loading, contractVersion }
           ))}
         </div>
       ) : null}
+    </section>
+  );
+}
+
+function ProviderActionPreflightPanel({ snapshot }) {
+  const actions = Array.isArray(snapshot.preflight) ? snapshot.preflight : [];
+
+  if (!actions.length) {
+    return null;
+  }
+
+  return (
+    <section className="rounded-[28px] border border-white/10 bg-[var(--tg-section-bg-color)] p-4">
+      <p className="text-xs font-black uppercase tracking-[0.16em] text-[var(--tg-hint-color)]">Action preflight</p>
+      <div className="mt-4 grid gap-2 sm:grid-cols-2">
+        {actions.map((action, index) => (
+          <article
+            key={`${action.provider || snapshot.provider || 'provider'}-${action.operation || 'operation'}-${index}`}
+            className="rounded-[18px] border border-white/10 bg-white/[0.04] p-3"
+          >
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-black text-[var(--tg-text-color)]">{action.label || formatOperationLabel(action.operation)}</p>
+              <span
+                className={
+                  action.allowed
+                    ? 'rounded-full border border-emerald-300/30 bg-emerald-400/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.12em] text-emerald-100'
+                    : 'rounded-full border border-amber-300/30 bg-amber-300/10 px-2 py-0.5 text-[10px] font-black uppercase tracking-[0.12em] text-amber-100'
+                }
+              >
+                {action.allowed ? 'Ready' : 'Gated'}
+              </span>
+            </div>
+            <p className="mt-2 text-xs font-bold leading-5 text-[var(--tg-subtitle-text-color)]">
+              {action.allowed ? action.status : action.reason || action.status || 'Unavailable'}
+            </p>
+          </article>
+        ))}
+      </div>
     </section>
   );
 }
@@ -539,9 +686,11 @@ function ProviderLaneContent({ manifest, lane, launcherLane, snapshot }) {
       <OperationStatusGrid
         readiness={snapshot.readiness}
         capability={snapshot.capability}
+        preflight={snapshot.preflight}
         loading={snapshot.loading}
         contractVersion={snapshot.contractVersion}
       />
+      <ProviderActionPreflightPanel snapshot={snapshot} />
       <ApiStateNotice snapshot={snapshot} />
       <LaneSetupGrid manifest={manifest} lane={lane} />
     </div>
@@ -596,6 +745,10 @@ export default function ProviderWorkspaceFoundation({ slug, lane = 'overview' })
   const launcherLaneId = getWorkspaceLauncherLaneId(manifest, activeLane);
   const launcherLane = launcher?.lanes?.find((item) => item.id === launcherLaneId) || null;
   const unsupportedLane = requestedLane !== activeLane;
+  const composedStatus = apiSnapshot.status || null;
+  const liveOperationCount = apiSnapshot.preflight?.length
+    ? apiSnapshot.preflight.filter((item) => item.allowed).length
+    : (apiSnapshot.readiness?.summary?.live_operations ?? 0);
 
   const quickActions = [
     { label: 'Command center', to: `/miniapp/ops?provider=${manifest.slug}` },
@@ -625,14 +778,14 @@ export default function ProviderWorkspaceFoundation({ slug, lane = 'overview' })
           <SummaryCard
             icon={Gauge}
             label="Readiness"
-            value={apiSnapshot.readiness?.ready ? 'ready' : apiSnapshot.readiness?.status || workspaceData?.connectionStatus || manifest.status || 'planned'}
-            detail={apiSnapshot.readiness ? 'Loaded from the provider API readiness contract.' : manifest.launcherStatusLabel || 'Configured from the Transferly provider manifest.'}
+            value={composedStatus?.status || (apiSnapshot.readiness?.ready ? 'ready' : apiSnapshot.readiness?.status || workspaceData?.connectionStatus || manifest.status || 'planned')}
+            detail={composedStatus ? 'Loaded from the composed provider API status contract.' : manifest.launcherStatusLabel || 'Configured from the Transferly provider manifest.'}
           />
           <SummaryCard
             icon={Activity}
             label="Operations"
-            value={`${apiSnapshot.readiness?.summary?.live_operations ?? 0} live`}
-            detail={apiSnapshot.loading ? 'Loading provider operation state.' : 'Invoices, payouts, balance, and activity stay gated by readiness.'}
+            value={`${liveOperationCount} ready`}
+            detail={apiSnapshot.loading ? 'Loading provider operation state.' : 'Invoices, payouts, balance, and activity stay gated by preflight.'}
           />
           <SummaryCard
             icon={WalletCards}
@@ -647,9 +800,11 @@ export default function ProviderWorkspaceFoundation({ slug, lane = 'overview' })
             <OperationStatusGrid
               readiness={apiSnapshot.readiness}
               capability={apiSnapshot.capability}
+              preflight={apiSnapshot.preflight}
               loading={apiSnapshot.loading}
               contractVersion={apiSnapshot.contractVersion}
             />
+            <ProviderActionPreflightPanel snapshot={apiSnapshot} />
             <ApiStateNotice snapshot={apiSnapshot} />
             <LaneOverview manifest={manifest} />
             <ProviderApiSnapshotPanel snapshot={apiSnapshot} />

@@ -26,6 +26,9 @@ const providerRoutes = Object.freeze({
   provider: (provider) => `/api/providers/${encodeURIComponent(provider)}`,
   providerReadiness: (provider) => `/api/providers/${encodeURIComponent(provider)}/readiness`,
   providerHealth: (provider) => `/api/providers/${encodeURIComponent(provider)}/health`,
+  providerStatus: (provider) => `/api/providers/${encodeURIComponent(provider)}/status`,
+  actionPreflight: (provider, operation) =>
+    `/api/providers/${encodeURIComponent(provider)}/actions/${encodeURIComponent(operation)}/preflight`,
   lanes: (provider) => `/api/providers/${encodeURIComponent(provider)}/lanes`,
   lane: (provider, laneId) => `/api/providers/${encodeURIComponent(provider)}/lanes/${encodeURIComponent(laneId)}`,
   invoices: (provider) => `/api/providers/${encodeURIComponent(provider)}/invoices`,
@@ -61,6 +64,11 @@ function createMutationIdempotencyKey(path, body = {}) {
       : '';
   const safePath = String(path || 'mutation').replace(/[^a-zA-Z0-9:_/-]/g, '-');
   return `bot:${safePath}:${bodyHint || randomUUID()}:${randomUUID()}`;
+}
+
+function createRequestId(prefix = 'bot') {
+  const safePrefix = String(prefix || 'bot').replace(/[^a-zA-Z0-9:_-]/g, '-');
+  return `${safePrefix}:${randomUUID()}`;
 }
 
 class ApiContractError extends Error {
@@ -148,6 +156,21 @@ function validateApiResponseContract(data, contract, context = {}) {
 
 const contractShapes = Object.freeze({
   okObject: { type: 'object' },
+  errorResponse: {
+    type: 'object',
+    fields: {
+      error: {
+        type: 'object',
+        fields: {
+          message: { type: 'string' },
+          code: { type: 'string', optional: true },
+          retryAfter: { type: 'any', optional: true },
+        },
+      },
+      requestId: { type: 'string', optional: true },
+      retryAfter: { type: 'any', optional: true },
+    },
+  },
   dataArray: {
     type: 'object',
     fields: {
@@ -293,6 +316,53 @@ const contractShapes = Object.freeze({
       requestId: { type: 'string', optional: true },
     },
   },
+  providerStatus: {
+    type: 'object',
+    fields: {
+      data: {
+        type: 'object',
+        fields: {
+          provider: { type: 'string' },
+          display_name: { type: 'string' },
+          status: { type: 'string' },
+          ready: { type: 'boolean' },
+          provider_status: { type: 'string', optional: true },
+          health_status: { type: 'string' },
+          health_score: { type: 'number' },
+          operations: { type: 'array' },
+          lanes: { type: 'array' },
+          warnings: { type: 'array' },
+          next_actions: { type: 'array' },
+        },
+      },
+      provider: { type: 'string', optional: true },
+      contract_version: { oneOf: [PROVIDER_CONTRACT_VERSION], optional: true },
+      requestId: { type: 'string', optional: true },
+    },
+  },
+  providerActionPreflight: {
+    type: 'object',
+    fields: {
+      data: {
+        type: 'object',
+        fields: {
+          allowed: { type: 'boolean' },
+          provider: { type: 'string' },
+          operation: { type: 'string' },
+          label: { type: 'string' },
+          status: { type: 'string' },
+          reason: { type: 'string', allowNull: true },
+          code: { type: 'string', allowNull: true },
+          supported_providers: { type: 'array' },
+          warnings: { type: 'array' },
+          next_actions: { type: 'array' },
+        },
+      },
+      provider: { type: 'string', optional: true },
+      contract_version: { oneOf: [PROVIDER_CONTRACT_VERSION], optional: true },
+      requestId: { type: 'string', optional: true },
+    },
+  },
   health: {
     type: 'object',
     fields: {
@@ -312,6 +382,7 @@ module.exports = {
   buildQuery,
   contractShapes,
   createMutationIdempotencyKey,
+  createRequestId,
   providerRoutes,
   PROVIDER_CONTRACT_VERSION,
   validateApiResponseContract,

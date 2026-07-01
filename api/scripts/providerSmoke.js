@@ -7,11 +7,14 @@ process.env.PAYPAL_WEBHOOK_ID = process.env.PAYPAL_WEBHOOK_ID || 'provider-smoke
 const { PROVIDER_CONTRACT_VERSION, providerCapabilityService } = require('../services/providerCapabilityService');
 const { providerHealthService } = require('../services/providerHealthService');
 const { providerReadinessService } = require('../services/providerReadinessService');
+const { providerStatusService } = require('../services/providerStatusService');
 
 async function main() {
   const capabilities = providerCapabilityService.listProviderCapabilities();
   const readiness = providerReadinessService.listProviderReadiness();
   const health = await providerHealthService.getProviderHealthReport();
+  const status = await providerStatusService.getProviderStatus('paypal');
+  const preflight = await providerStatusService.preflightProviderAction('paypal', 'invoices');
   const mismatchedReadiness = readiness.filter((entry) => entry.contract_version !== PROVIDER_CONTRACT_VERSION);
 
   if (capabilities.length === 0) {
@@ -23,13 +26,21 @@ async function main() {
   if (!Array.isArray(health.data) || health.data.length === 0) {
     throw new Error('Provider health report did not return provider health rows.');
   }
+  if (status.provider !== 'paypal' || !Array.isArray(status.operations)) {
+    throw new Error('Provider status did not return a valid provider operation summary.');
+  }
+  if (preflight.allowed !== true) {
+    throw new Error('Provider action preflight unexpectedly blocked PayPal invoices.');
+  }
 
   console.log(JSON.stringify({
     ok: true,
     contract_version: PROVIDER_CONTRACT_VERSION,
     providers: capabilities.length,
     readiness: readiness.length,
-    health: health.data.length
+    health: health.data.length,
+    status: status.provider,
+    preflight: preflight.allowed
   }));
 }
 

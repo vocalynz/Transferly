@@ -82,7 +82,7 @@ const defaultConfig = {
   tagline: 'Generate Professional Receipts Instantly',
   support_email: 'support@transferly.app',
   admin_email: 'admin@transferly.app',
-  brand_color: '#f8812d',
+  brand_color: '#2aabee',
   bank_slip_cost: 10,
   email_receipt_cost: 5,
   referral_bonus: 20,

@@ -41,14 +41,14 @@ export function MiniAppState({
 
   return (
     <main
-      className={`flex w-full items-center justify-center px-5 text-center ${compact ? 'min-h-[240px]' : 'min-h-screen bg-[var(--tg-bg-color,#f5f7fb)]'}`}
+      className={`flex w-full items-center justify-center px-5 text-center ${compact ? 'min-h-[240px]' : 'min-h-screen bg-[var(--tg-bg-color,#0b1524)]'}`}
     >
       <section
-        className="flex max-w-sm flex-col items-center gap-4"
+        className="flex max-w-sm flex-col items-center gap-4 rounded-[8px] border border-[var(--miniapp-border-color,rgba(245,248,255,0.12))] bg-[var(--tg-section-bg-color,#15263a)] p-6 shadow-[0_20px_60px_rgba(0,0,0,0.22)]"
         role={tone === 'error' ? 'alert' : 'status'}
         aria-live={tone === 'loading' ? 'polite' : 'assertive'}
       >
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white shadow-sm ring-1 ring-black/5">
+        <div className="flex h-12 w-12 items-center justify-center rounded-[8px] border border-[var(--miniapp-border-color,rgba(245,248,255,0.12))] bg-[var(--tg-secondary-bg-color,#111f32)] shadow-sm">
           <Icon className={`h-6 w-6 ${config.iconClassName}`} aria-hidden="true" />
         </div>
         <div className="space-y-2">
@@ -63,7 +63,7 @@ export function MiniAppState({
           <button
             type="button"
             onClick={onAction}
-            className="inline-flex h-11 items-center gap-2 rounded-2xl bg-[var(--tg-button-color,#229ed9)] px-5 text-sm font-black text-[var(--tg-button-text-color,#ffffff)] shadow-sm transition active:scale-[0.98]"
+            className="inline-flex h-11 items-center gap-2 rounded-[8px] bg-[var(--tg-button-color,#2aabee)] px-5 text-sm font-black text-[var(--tg-button-text-color,#ffffff)] shadow-sm transition active:scale-[0.98]"
           >
             <RefreshCw className="h-4 w-4" aria-hidden="true" />
             {actionLabel || 'Try again'}

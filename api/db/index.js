@@ -113,5 +113,6 @@ module.exports = {
   initializeDatabase,
   transaction,
   close,
-  loadSchemaSql
+  loadSchemaSql,
+  sqliteDatabasePath
 };
